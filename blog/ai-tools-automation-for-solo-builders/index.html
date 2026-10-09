@@ -1,0 +1,147 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>AI Tools &amp; Automation for Solo Builders</title><meta name="description" content="A practical roundup of AI tools that save a solo developer real hours each week, with pricing and when to skip them."></head> <body> <header> <a href="/blog/"><strong>Dev Notes</strong></a> <hr> </header> <main>  <article> <h1>AI Tools &amp; Automation for Solo Builders</h1> <time datetime="2026-10-09T00:00:00.000Z"> 2026-10-09 </time> <p>Most “best AI tools” roundups are written for people who don’t ship code. This one has a single filter: does it save a solo developer measurable time in a normal week? If a tool can’t clear about 30 minutes a week, or replace a task you already do on a schedule, it’s a subscription you’ll forget to cancel.</p>
+<h2 id="set-the-bar-before-you-buy-anything">Set the bar before you buy anything</h2>
+<p>Before adding a tool, write down the task it replaces and how long that task takes today. A release-notes chore that eats 20 minutes every Friday is worth $10/month. A chat UI you open twice is not. The trap for solo builders isn’t the price per tool — it’s the accumulated $60–80/month of “someday” subscriptions that each promise a workflow you never build.</p>
+<p>Two rules keep this honest: pay with an API key and metered usage for anything you script (you’ll often spend under $2/month), and keep a paid seat only for tools that live in your editor or terminal where you already work.</p>
+<h2 id="coding-assistants-run-one-not-five">Coding assistants: run one, not five</h2>
+<p>The three serious options overlap heavily. Pick the one that matches how you work, not the one with the loudest launch.</p>
+<ul>
+<li><strong>GitHub Copilot</strong> — best if you live in VS Code/JetBrains and want low-friction completion plus chat. Free tier exists; Pro is $10/month, Pro+ $39/month.</li>
+<li><strong>Cursor</strong> — an AI-first editor (a VS Code fork). Strongest for multi-file refactors and inline edits. Free Hobby tier; Pro $20/month, Ultra $40/month.</li>
+<li><strong>Claude Code</strong> — agentic edits from the terminal, good for “change this across the repo” tasks. Bundled with Claude Pro at $20/month, or metered via API.</li>
+</ul>
+<p>Avoid stacking all three. They solve the same problem, and your muscle memory fragments.</p>
+<h3 id="a-commit-assistant-youll-actually-use">A commit assistant you’ll actually use</h3>
+<p>Commit messages are cheap to generate and easy to verify, which makes them a perfect automation target. The <code>llm</code> CLI (from Simon Willison) is a thin wrapper over any API model:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D">#!/usr/bin/env bash</span></span>
+<span class="line"><span style="color:#6A737D"># ~/bin/ai-commit</span></span>
+<span class="line"><span style="color:#79B8FF">set</span><span style="color:#79B8FF"> -euo</span><span style="color:#9ECBFF"> pipefail</span></span>
+<span class="line"><span style="color:#E1E4E8">diff</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">$(</span><span style="color:#B392F0">git</span><span style="color:#9ECBFF"> diff</span><span style="color:#79B8FF"> --staged</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#E1E4E8">[ </span><span style="color:#F97583">-z</span><span style="color:#9ECBFF"> "</span><span style="color:#E1E4E8">$diff</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8"> ] &#x26;&#x26; { </span><span style="color:#79B8FF">echo</span><span style="color:#9ECBFF"> "Nothing staged."</span><span style="color:#E1E4E8">; </span><span style="color:#79B8FF">exit</span><span style="color:#79B8FF"> 1</span><span style="color:#E1E4E8">; }</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">msg</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">$(</span><span style="color:#79B8FF">printf</span><span style="color:#9ECBFF"> '%s'</span><span style="color:#9ECBFF"> "</span><span style="color:#E1E4E8">$diff</span><span style="color:#9ECBFF">"</span><span style="color:#F97583"> |</span><span style="color:#B392F0"> llm</span><span style="color:#79B8FF"> \</span></span>
+<span class="line"><span style="color:#79B8FF">  -s</span><span style="color:#9ECBFF"> "Write one Conventional Commits subject line, max 72 chars. Output only the subject."</span><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#B392F0">git</span><span style="color:#9ECBFF"> commit</span><span style="color:#79B8FF"> -m</span><span style="color:#9ECBFF"> "</span><span style="color:#E1E4E8">$msg</span><span style="color:#9ECBFF">"</span></span></code></pre>
+<p>This saves a few minutes per commit and, more importantly, keeps history consistent when you’re context-switching between projects.</p>
+<h3 id="automate-review-not-authoring">Automate review, not authoring</h3>
+<p>AI review catches the boring stuff — missing null checks, forgotten error handling, inconsistent naming — before a human ever looks. CodeRabbit is free for open source and roughly $12–24/month per developer for private repos. Its config is a single file:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#6A737D"># .coderabbit.yaml</span></span>
+<span class="line"><span style="color:#85E89D">language</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">en-US</span></span>
+<span class="line"><span style="color:#85E89D">reviews</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  profile</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">chill</span><span style="color:#6A737D">            # less nitpicky than "assertive"</span></span>
+<span class="line"><span style="color:#85E89D">  request_changes_workflow</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">false</span></span>
+<span class="line"><span style="color:#85E89D">  high_level_summary</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">true</span></span>
+<span class="line"><span style="color:#85E89D">  poem</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">false</span><span style="color:#6A737D">               # turn this off</span></span></code></pre>
+<p>Pair it with a CI gate so reviews don’t depend on remembering to run anything.</p>
+<h2 id="automation-beyond-autocomplete">Automation beyond autocomplete</h2>
+<h3 id="release-notes-that-write-themselves">Release notes that write themselves</h3>
+<p>You already have the source of truth: your git log. Feed it to a cheap model and print user-facing notes. Using the OpenAI Python SDK:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="python"><code><span class="line"><span style="color:#6A737D"># scripts/release_notes.py</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> os, subprocess</span></span>
+<span class="line"><span style="color:#F97583">from</span><span style="color:#E1E4E8"> openai </span><span style="color:#F97583">import</span><span style="color:#E1E4E8"> OpenAI</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">client </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> OpenAI(</span><span style="color:#FFAB70">api_key</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">os.environ[</span><span style="color:#9ECBFF">"OPENAI_API_KEY"</span><span style="color:#E1E4E8">])</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">def</span><span style="color:#B392F0"> last_tag</span><span style="color:#E1E4E8">() -> </span><span style="color:#79B8FF">str</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#F97583">    return</span><span style="color:#E1E4E8"> subprocess.check_output(</span></span>
+<span class="line"><span style="color:#E1E4E8">        [</span><span style="color:#9ECBFF">"git"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"describe"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"--tags"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"--abbrev=0"</span><span style="color:#E1E4E8">], </span><span style="color:#FFAB70">text</span><span style="color:#F97583">=</span><span style="color:#79B8FF">True</span></span>
+<span class="line"><span style="color:#E1E4E8">    ).strip()</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">log </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> subprocess.check_output(</span></span>
+<span class="line"><span style="color:#E1E4E8">    [</span><span style="color:#9ECBFF">"git"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"log"</span><span style="color:#E1E4E8">, </span><span style="color:#F97583">f</span><span style="color:#9ECBFF">"</span><span style="color:#79B8FF">{</span><span style="color:#E1E4E8">last_tag()</span><span style="color:#79B8FF">}</span><span style="color:#9ECBFF">..HEAD"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"--pretty=format:</span><span style="color:#79B8FF">%s</span><span style="color:#9ECBFF">%n</span><span style="color:#79B8FF">%b</span><span style="color:#9ECBFF">"</span><span style="color:#E1E4E8">],</span></span>
+<span class="line"><span style="color:#FFAB70">    text</span><span style="color:#F97583">=</span><span style="color:#79B8FF">True</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">)</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">resp </span><span style="color:#F97583">=</span><span style="color:#E1E4E8"> client.chat.completions.create(</span></span>
+<span class="line"><span style="color:#FFAB70">    model</span><span style="color:#F97583">=</span><span style="color:#9ECBFF">"gpt-4o-mini"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#FFAB70">    messages</span><span style="color:#F97583">=</span><span style="color:#E1E4E8">[</span></span>
+<span class="line"><span style="color:#E1E4E8">        {</span><span style="color:#9ECBFF">"role"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"system"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">         "content"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"Write terse user-facing release notes grouped under "</span></span>
+<span class="line"><span style="color:#9ECBFF">                    "Added / Changed / Fixed. No fluff, no marketing."</span><span style="color:#E1E4E8">},</span></span>
+<span class="line"><span style="color:#E1E4E8">        {</span><span style="color:#9ECBFF">"role"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"user"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"content"</span><span style="color:#E1E4E8">: log},</span></span>
+<span class="line"><span style="color:#E1E4E8">    ],</span></span>
+<span class="line"><span style="color:#FFAB70">    temperature</span><span style="color:#F97583">=</span><span style="color:#79B8FF">0.2</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#E1E4E8">)</span></span>
+<span class="line"><span style="color:#79B8FF">print</span><span style="color:#E1E4E8">(resp.choices[</span><span style="color:#79B8FF">0</span><span style="color:#E1E4E8">].message.content)</span></span></code></pre>
+<p>At <code>gpt-4o-mini</code> rates (roughly $0.15 per 1M input tokens), this costs fractions of a cent per release. Run it as a make target and edit the output — you keep the editorial control without writing from a blank page.</p>
+<h3 id="issue-triage-without-a-human-first-pass">Issue triage without a human first pass</h3>
+<p>GitHub Models exposes hosted models to Actions directly, so you can classify incoming issues on day one:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#6A737D"># .github/workflows/triage.yml</span></span>
+<span class="line"><span style="color:#85E89D">name</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">triage</span></span>
+<span class="line"><span style="color:#79B8FF">on</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  issues</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    types</span><span style="color:#E1E4E8">: [</span><span style="color:#9ECBFF">opened</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#85E89D">permissions</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  issues</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">write</span></span>
+<span class="line"><span style="color:#85E89D">jobs</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">  classify</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">    runs-on</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">ubuntu-latest</span></span>
+<span class="line"><span style="color:#85E89D">    steps</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#E1E4E8">      - </span><span style="color:#85E89D">uses</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">actions/ai-inference@v1</span></span>
+<span class="line"><span style="color:#85E89D">        id</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">ai</span></span>
+<span class="line"><span style="color:#85E89D">        with</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          model</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">openai/gpt-4o-mini</span></span>
+<span class="line"><span style="color:#85E89D">          prompt</span><span style="color:#E1E4E8">: </span><span style="color:#F97583">|</span></span>
+<span class="line"><span style="color:#9ECBFF">            Classify into exactly one of: bug, feature, docs, question.</span></span>
+<span class="line"><span style="color:#9ECBFF">            Reply with only the label.</span></span>
+<span class="line"><span style="color:#9ECBFF">            Title: ${{ github.event.issue.title }}</span></span>
+<span class="line"><span style="color:#9ECBFF">            Body: ${{ github.event.issue.body }}</span></span>
+<span class="line"><span style="color:#E1E4E8">      - </span><span style="color:#85E89D">run</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">gh issue edit ${{ github.event.issue.number }} --add-label "${{ steps.ai.outputs.response }}"</span></span>
+<span class="line"><span style="color:#85E89D">        env</span><span style="color:#E1E4E8">:</span></span>
+<span class="line"><span style="color:#85E89D">          GH_TOKEN</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">${{ secrets.GITHUB_TOKEN }}</span></span></code></pre>
+<p>Two caveats worth internalizing: AI triage is a <em>suggestion</em>, so let it label but never auto-close. And treat the issue body as untrusted input — a malicious body can contain prompt-injection text.</p>
+<h2 id="where-ai-costs-you-time">Where AI costs you time</h2>
+<ul>
+<li><strong>Security-sensitive code.</strong> Auth, crypto, and payment paths need a human who understands the threat model. Generated code that “looks right” is the expensive kind of wrong.</li>
+<li><strong>Generated tests.</strong> Models happily assert your current buggy behavior, cementing it as a regression test. Write the assertion yourself, let the model fill in boilerplate.</li>
+<li><strong>Tiny scripts.</strong> If the task is a three-line regex, the model’s latency and occasional hallucination cost more than typing it.</li>
+<li><strong>Hot paths.</strong> Never put an LLM call in a CLI’s critical path or a request handler where latency matters and determinism doesn’t exist.</li>
+<li><strong>Data you can’t send.</strong> Client code, keys, and regulated data belong in a local model (Ollama, LM Studio) or nowhere. Local models are free but need RAM; budget ~8GB for a small code model.</li>
+</ul>
+<h2 id="a-realistic-monthly-stack">A realistic monthly stack</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Tool</th><th>Job</th><th>List price (verify before buying)</th></tr></thead><tbody><tr><td>Copilot <em>or</em> Cursor</td><td>Completion + inline edits</td><td>$10–20/mo</td></tr><tr><td>Claude Code / API</td><td>Agentic + scripting</td><td>$0–20/mo (metered)</td></tr><tr><td>CodeRabbit</td><td>PR review</td><td>Free OSS / ~$12–24</td></tr><tr><td><code>llm</code> + API key</td><td>Commit msgs, summaries</td><td>usually &#x3C; $2/mo</td></tr><tr><td>Ollama</td><td>Private/local inference</td><td>$0 (your hardware)</td></tr></tbody></table>
+<p>For most solo developers, one editor assistant plus a metered API key covers 90% of the payoff for well under $30/month. Add review tooling only after you have regular PRs to review.</p>
+<h2 id="key-takeaways">Key takeaways</h2>
+<ul>
+<li>Pick <strong>one</strong> editor assistant. Copilot, Cursor, and Claude Code overlap; running several fragments your workflow for no extra capability.</li>
+<li>Automate tasks with an obvious source of truth first — commit messages, changelogs, labels — because the output is cheap to verify.</li>
+<li>Use metered API keys for scripts. The tasks worth automating are small and frequent, which is exactly where per-seat pricing overcharges you.</li>
+<li>Treat AI review and triage as suggestions. Never let generated changes auto-merge or auto-close.</li>
+<li>Skip AI wherever verification is expensive: auth, payments, crypto, and generated tests that lock in current behavior.</li>
+<li>Keep private or regulated code local. A free Ollama model beats a leaked API key.</li>
+</ul> </article>  </main> <hr> <footer> <small>&copy; 2026 Dev Notes</small> </footer> </body></html>
